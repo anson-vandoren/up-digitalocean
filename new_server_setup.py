@@ -1,14 +1,13 @@
+import getpass
 import os
 import re
 import sys
-
 from io import BytesIO, StringIO
 from string import Template
 
-import getpass
+import requests
 from fabric import Config, Connection
 from invoke import Responder
-import requests
 
 SERVER_NAME = os.environ.get("FABRIC_SERVER_NAME", None)
 if SERVER_NAME is None:
