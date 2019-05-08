@@ -8,6 +8,7 @@ from string import Template
 import getpass
 from fabric import Config, Connection
 from invoke import Responder
+import requests
 
 SERVER_NAME = "staging.skysmuggler.com"
 EMAIL_ADDRESS = "anson.vandoren@gmail.com"
@@ -117,10 +118,55 @@ def install_lets_encrypt(c):
     )
 
 
+def install_docker(c):
+    print("Installing Docker")
+    c.sudo(
+        "apt update && sudo apt install apt-transport-https ca-certificates curl software-properties-common"
+    )
+    c.sudo(
+        "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -"
+    )
+    c.sudo(
+        'add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"'
+    )
+    c.sudo("apt update")
+    c.run("apt-cache policy docker-ce")
+    c.sudo("apt install docker-ce -y")
+
+    docker_status = c.sudo("systemctl status docker")
+    for line in docker_status.stdout.split("\n"):
+        if "Active: active" in line:
+            print("Docker is running")
+            break
+    else:
+        print("Docker does not seem to be running: ", docker_status.stdout)
+        print("...failed, exiting!")
+        exit()
+
+    print(f"Setting groups for user {c.user}")
+    c.sudo("usermod -aG docker ${USER}")
+
+    print("Installing docker-compose")
+
+    # Get latest released version
+    dc_version = requests.get("https://api.github.com/repos/docker/compose/releases")
+    if dc_version.status_code != 200:
+        print("Can't get current docker-compose version: ", dc_version.text)
+        exit()
+    dc_version = dc_version.json()[0]["tag_name"]
+
+    c.sudo(
+        f"curl -L https://github.com/docker/compose/releases/download/{dc_version}/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose"
+    )
+    c.sudo("chmod +x /usr/local/bin/docker-compose")
+    print("docker and docker-compose are installed")
+
+
 def main():
     c = Connection(SERVER_NAME, config=CONFIG)
-    install_nginx(c)
-    install_lets_encrypt(c)
+    # install_nginx(c)
+    # install_lets_encrypt(c)
+    install_docker(c)
 
 
 if __name__ == "__main__":
