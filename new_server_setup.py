@@ -173,8 +173,8 @@ def install_docker(c):
 
 def main():
     c = Connection(SERVER_NAME, config=CONFIG)
-    # install_nginx(c)
-    # install_lets_encrypt(c)
+    install_nginx(c)
+    install_lets_encrypt(c)
     install_docker(c)
 
 
