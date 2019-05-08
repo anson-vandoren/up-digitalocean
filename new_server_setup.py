@@ -10,13 +10,22 @@ from fabric import Config, Connection
 from invoke import Responder
 import requests
 
-SERVER_NAME = "staging.skysmuggler.com"
-EMAIL_ADDRESS = "anson.vandoren@gmail.com"
+SERVER_NAME = os.environ.get("FABRIC_SERVER_NAME", None)
+if SERVER_NAME is None:
+    SERVER_NAME = input("Enter server name (or set envar FABRIC_SERVER_NAME): ")
+
+EMAIL_ADDRESS = os.environ.get("FABRIC_EMAIL_ADDRESS", None)
+if EMAIL_ADDRESS is None:
+    EMAIL_ADDRESS = input(
+        "Enter your email address for Certbot registration (or set envar FABRIC_EMAIL_ADDRESS): "
+    )
 DO_HTTPS_REDIRECT = True
 # If you don't want to type your sudo password each time, you can set it via environment variable instead
 sudo_pass = os.environ.get("FABRIC_SUDO_PASSWORD", None)
 if sudo_pass is None:
-    sudo_pass = getpass.getpass("Enter sudo password: ")
+    sudo_pass = getpass.getpass(
+        "Enter sudo password (or set envar FABRIC_SUDO_PASSWORD): "
+    )
 
 CONFIG = Config(overrides={"sudo": {"password": sudo_pass}})
 
