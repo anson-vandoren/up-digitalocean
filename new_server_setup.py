@@ -29,10 +29,33 @@ if sudo_pass is None:
 CONFIG = Config(overrides={"sudo": {"password": sudo_pass}})
 
 
+def basic_setup():
+    # Initial connection needs to be over root (using predetermined ssh key)
+    b = Connection(SERVER_NAME, user="root", config=CONFIG)
+    new_user = os.getlogin()
+    for userline in b.run("cat /etc/passwd", hide=True).stdout.split("\n"):
+        if new_user in userline:
+            print(f"User '{new_user}' already exists'")
+            break
+    else:
+        print(
+            f"Creating new user named '{new_user}' with sudo privileges on {SERVER_NAME}"
+        )
+        b.run(f"adduser {new_user}")
+    b.run(f"usermod -aG sudo {new_user}")
+    print("Enabling firewall for ssh")
+    b.run("ufw allow OpenSSH && ufw enable && ufw status")
+    print(f"Copying ssh key to {new_user} authorized_keys")
+    b.run(f"rsync --archive --chown={new_user}:{new_user} ~/.ssh /home/{new_user}")
+    print("Closing connection as root...")
+    b.close()
+
+
 def install_nginx(c):
     """https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-18-04"""
     print("Checking for Nginx...")
-    nginx_installed = c.run("dpkg -s nginx")
+
+    nginx_installed = c.run("dpkg -s nginx", warn=True)
     for line in nginx_installed.stdout.split("\n"):
         if "Status: install ok installed" in line:
             nginx_installed = True
@@ -43,7 +66,7 @@ def install_nginx(c):
     if not nginx_installed:
         print("\tInstalling Nginx...")
         c.sudo("apt update")
-        c.sudo("apt install nginx")
+        c.sudo("apt install nginx -y")
         print("\t...done installing")
     else:
         print("...Nginx already installed")
@@ -61,7 +84,7 @@ def install_nginx(c):
         c.sudo(f"mv tmp_server_conf /etc/nginx/sites-available/{SERVER_NAME}")
 
     # Check whether a symbolic link already exists for this server block:
-    if not c.run(f"cat /etc/nginx/sites-enabled/{SERVER_NAME}"):
+    if not c.run(f"cat /etc/nginx/sites-enabled/{SERVER_NAME}", warn=True):
         c.sudo(
             f"ln -s /etc/nginx/sites-available/{SERVER_NAME} /etc/nginx/sites-enabled/"
         )
@@ -128,11 +151,13 @@ def install_lets_encrypt(c):
 
 def install_docker(c):
     print("Installing Docker")
+    c.sudo("apt update")
     c.sudo(
-        "apt update && sudo apt install apt-transport-https ca-certificates curl software-properties-common"
+        "apt install apt-transport-https ca-certificates curl software-properties-common -y"
     )
     c.sudo(
-        "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -"
+        "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+        pty=True,
     )
     c.sudo(
         'add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"'
@@ -172,8 +197,9 @@ def install_docker(c):
 
 def main():
     c = Connection(SERVER_NAME, config=CONFIG)
-    install_nginx(c)
-    install_lets_encrypt(c)
+    # basic_setup()
+    # install_nginx(c)
+    # install_lets_encrypt(c)
     install_docker(c)
 
 
