@@ -131,7 +131,10 @@ def install_lets_encrypt(c):
         print("\t...done updating ufw")
 
     print("Adding Certbot repositories and installing Certbot")
+    c.sudo("apt-get install software-properties-common -y")
+    c.sudo("add-apt-repository universe -y")
     c.sudo("add-apt-repository ppa:certbot/certbot -y")
+    c.sudo("apt-get update")
     c.sudo("apt install python-certbot-nginx -y")
 
     email_responder = Responder(
