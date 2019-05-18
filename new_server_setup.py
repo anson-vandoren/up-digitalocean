@@ -197,9 +197,9 @@ def install_docker(c):
 
 def main():
     c = Connection(SERVER_NAME, config=CONFIG)
-    # basic_setup()
-    # install_nginx(c)
-    # install_lets_encrypt(c)
+    basic_setup()
+    install_nginx(c)
+    install_lets_encrypt(c)
     install_docker(c)
 
 
