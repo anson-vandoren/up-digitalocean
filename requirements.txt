@@ -1,4 +1,4 @@
-cryptography==2.4.2
+cryptography==3.2
 fabric==2.4.0
 requests==2.21.0
 python-digitalocean==1.14.0
